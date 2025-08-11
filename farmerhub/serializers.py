@@ -1,53 +1,53 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from .models import *
 from django.contrib.auth.password_validation import validate_password
-
+from .models import Tip, TipPhoto, PestsandDiseases, PestsandDiseasesPhoto
 
 User = get_user_model()
 
-# serializer specifically for login
+# --- Login Serializer with extra user info in token ---
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
-        # Validate username and password first
         data = super().validate(attrs)
-
         user = self.user
-
-        # Optionally, add role to token response
-        data['id'] = user.id
-        data['username'] = user.username
-        data['role'] = user.role
-        data['first_name'] = user.first_name
-        data['last_name'] = user.last_name
-        data['email'] = user.email
+        data.update({
+            'id': user.id,
+            'username': user.username,
+            'role': user.role,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'address': user.address,
+            'gender': user.gender,
+            'email': user.email,
+            'phone': user.phone,
+        })
         return data
-    
 
-
-
-
-
-
-
-#  userprofile serializer
+# --- User Serializer for profile view/update ---
 class UserSerializer(serializers.ModelSerializer):
     username = serializers.CharField(read_only=True)
     role = serializers.CharField(read_only=True)
     new_password = serializers.CharField(write_only=True, required=False)
     verify_password = serializers.CharField(write_only=True, required=False)
 
+    first_name = serializers.CharField(required=False)
+    last_name = serializers.CharField(required=False)
+    phone = serializers.CharField(required=False, allow_blank=True)
+    gender = serializers.CharField(required=False, allow_blank=True)
+    email = serializers.EmailField(required=False)
+
     class Meta:
         model = User
-        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'role', 'new_password', 'verify_password')
+        fields = (
+            'id', 'username', 'first_name', 'last_name', 'phone',
+            'gender', 'email', 'role', 'new_password', 'verify_password'
+        )
 
     def validate(self, data):
         new_password = data.get('new_password')
         verify_password = data.get('verify_password')
 
-        # If either is provided, both must be present and match
         if new_password or verify_password:
             if not new_password:
                 raise serializers.ValidationError({"new_password": "This field is required."})
@@ -55,41 +55,43 @@ class UserSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"verify_password": "This field is required."})
             if new_password != verify_password:
                 raise serializers.ValidationError({"verify_password": "Passwords do not match."})
-            if len(new_password) < 4:
+            if len(new_password) < 8:
                 raise serializers.ValidationError({"new_password": "Password must be at least 8 characters long."})
 
         return data
 
     def update(self, instance, validated_data):
         new_password = validated_data.pop('new_password', None)
-        validated_data.pop('verify_password', None)  # Remove it; only used for validation
+        validated_data.pop('verify_password', None)
 
-        # Update fields like first_name, last_name, etc.
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
-        # If new_password was provided, update password
         if new_password:
             instance.set_password(new_password)
 
         instance.save()
         return instance
 
-
-# register serializer
+# --- Registration Serializer ---
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'phone', 'address', 'gender', 'role', 'password', 'password2')
+        fields = (
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'phone', 'address', 'gender', 'role', 'password', 'password2'
+        )
         extra_kwargs = {
             'username': {'required': True},
             'email': {'required': True},
             'phone': {'required': True},
             'address': {'required': True},
             'role': {'required': True},
+            'first_name': {'required': True},
+            'last_name': {'required': True},
         }
 
     def validate(self, attrs):
@@ -102,6 +104,8 @@ class RegisterSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name'],
             phone=validated_data['phone'],
             address=validated_data['address'],
             gender=validated_data['gender'],
@@ -109,95 +113,105 @@ class RegisterSerializer(serializers.ModelSerializer):
             password=validated_data['password']
         )
         return user
-    
 
-#  Tip serializer
-from rest_framework import serializers
-from .models import Tip
+# --- TipPhoto Serializer (media URLs) ---
+class TipPhotoSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
 
+    class Meta:
+        model = TipPhoto
+        fields = ['id', 'image_url']
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.image:
+            return request.build_absolute_uri(obj.image.url)
+        return None
+
+# --- Tip Serializer including media (photos/videos) ---
 class TipSerializer(serializers.ModelSerializer):
-    author = serializers.SlugRelatedField(slug_field='username', queryset=User.objects.all())
+    author_name = serializers.SerializerMethodField()
+    media = serializers.SerializerMethodField()
+    date_posted = serializers.DateTimeField(source='date', format="%Y-%m-%d %H:%M")
+    last_updated = serializers.DateTimeField(source='updated_at', format="%Y-%m-%d %H:%M")
 
     class Meta:
         model = Tip
         fields = [
-            'id',
-            'author',
-            'category',
-            'crop',
-            'livestock',
-            'equipment',
-            'title',
-            'description',
-            'date',
-            'updated_at'
+            'id', 'title', 'description', 'category',
+            'crop', 'livestock', 'equipment',
+            'author_name', 'media', 'date_posted', 'last_updated'
         ]
-        read_only_fields = ['date', 'updated_at']
 
-    def validate(self, data):
-        category = data.get('category')
-        crop = data.get('crop')
-        livestock = data.get('livestock')
-        equipment = data.get('equipment')
+    def get_author_name(self, obj):
+        full_name = f"{obj.author.first_name or ''} {obj.author.last_name or ''}".strip()
+        return full_name if full_name else obj.author.username
 
-        # Enforce one field only per category
-        if category == 'Crop':
-            if not crop:
-                raise serializers.ValidationError({"crop": "This field is required when category is Crop."})
-            if livestock or equipment:
-                raise serializers.ValidationError("Only crop should be set when category is Crop.")
-        elif category == 'Livestock':
-            if not livestock:
-                raise serializers.ValidationError({"livestock": "This field is required when category is Livestock."})
-            if crop or equipment:
-                raise serializers.ValidationError("Only livestock should be set when category is Livestock.")
-        elif category == 'Equipment':
-            if not equipment:
-                raise serializers.ValidationError({"equipment": "This field is required when category is Equipment."})
-            if crop or livestock:
-                raise serializers.ValidationError("Only equipment should be set when category is Equipment.")
-        else:
-            raise serializers.ValidationError({"category": "Invalid category selected."})
+    def get_media(self, obj):
+        request = self.context.get('request')
+        if not obj.pk:
+            return None  # Avoid errors on unsaved instances
 
-        return data
+        if obj.video:
+            return {
+                'type': 'video',
+                'url': request.build_absolute_uri(obj.video.url)
+            }
+        photos = obj.photos.all() if hasattr(obj, 'photos') else []
+        if photos:
+            return {
+                'type': 'photos',
+                'urls': [request.build_absolute_uri(photo.image.url) for photo in photos]
+            }
+        return None
 
-
-
-class PestDiseaseSerializer(serializers.ModelSerializer):
-    author = serializers.SlugRelatedField(slug_field='username', queryset=User.objects.all())
+# --- PestsandDiseasesPhoto Serializer ---
+class PestsandDiseasesPhotoSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
-        model = PestDisease
+        model = PestsandDiseasesPhoto
+        fields = ['id', 'image_url']
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.image:
+            return request.build_absolute_uri(obj.image.url)
+        return None
+
+# --- PestsandDiseases Serializer including media ---
+class PestsandDiseasesSerializer(serializers.ModelSerializer):
+    author_name = serializers.SerializerMethodField()
+    media = serializers.SerializerMethodField()
+    date_posted = serializers.DateTimeField(source='date', format="%Y-%m-%d %H:%M")
+    last_updated = serializers.DateTimeField(source='updated_at', format="%Y-%m-%d %H:%M")
+
+    class Meta:
+        model = PestsandDiseases
         fields = [
-            'id',
-            'author',
-            'category',
-            'crop',
-            'livestock',
-            'title',
-            'description',
-            'date',
-            'updated_at'
+            'id', 'title', 'description', 'category',
+            'crop', 'livestock',
+            'author_name', 'media', 'date_posted', 'last_updated'
         ]
-        read_only_fields = ['date', 'updated_at']
 
-    def validate(self, data):
-        category = data.get('category')
-        crop = data.get('crop')
-        livestock = data.get('livestock')
+    def get_author_name(self, obj):
+        full_name = f"{obj.author.first_name or ''} {obj.author.last_name or ''}".strip()
+        return full_name if full_name else obj.author.username
 
-        # Enforce one field only per category
-        if category == 'Crop':
-            if not crop:
-                raise serializers.ValidationError({"crop": "This field is required when category is Crop."})
-            if livestock:
-                raise serializers.ValidationError("Only crop should be set when category is Crop.")
-        elif category == 'Livestock':
-            if not livestock:
-                raise serializers.ValidationError({"livestock": "This field is required when category is Livestock."})
-            if crop:
-                raise serializers.ValidationError("Only livestock should be set when category is Livestock.")
-        else:
-            raise serializers.ValidationError({"category": "Invalid category selected."})
+    def get_media(self, obj):
+        request = self.context.get('request')
+        if not obj.pk:
+            return None
 
-        return data
+        if obj.video:
+            return {
+                'type': 'video',
+                'url': request.build_absolute_uri(obj.video.url)
+            }
+        photos = obj.photos.all() if hasattr(obj, 'photos') else []
+        if photos:
+            return {
+                'type': 'photos',
+                'urls': [request.build_absolute_uri(photo.image.url) for photo in photos]
+            }
+        return None
