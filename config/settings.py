@@ -8,30 +8,30 @@ SECRET_KEY = 'django-insecure-r=5lq6)(*zw9j^$+nntke6mlflaqo%n8jdh)*8)=l*=yb@*&sn
 DEBUG = True
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
-# CORS origins allowed (frontend React usually on localhost:3000)
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
 ]
 
 INSTALLED_APPS = [
-    'ckeditor',
-    'ckeditor_uploader',  # <-- for file uploads inside CKEditor content
     'corsheaders',
-    'farmerhub',
-    'rest_framework',
-    'rest_framework_simplejwt',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'ckeditor',
+    'ckeditor_uploader',  # for uploading images inside CKEditor content
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'farmerhub',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',  # Make sure this is before CommonMiddleware
+    'corsheaders.middleware.CorsMiddleware',  # corsheaders middleware should be high
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -40,7 +40,6 @@ MIDDLEWARE = [
 ]
 
 REST_FRAMEWORK = {
-    # Default auth classes to JWT
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
@@ -58,7 +57,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],  # You can add your templates dir here if needed
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -77,12 +76,11 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'farmerhubDB',
         'USER': 'postgres',
-        'PASSWORD': '123',  
+        'PASSWORD': '123',
         'HOST': 'localhost',
-        'PORT': '5052',
+        'PORT': '5051',
     }
 }
-
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
@@ -96,13 +94,13 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
-# Media (uploads) settings - VERY IMPORTANT for images/videos upload
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# MEDIA settings for uploaded files (important for images/videos)
 MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# CKEditor upload path for images in rich text
+# CKEditor upload settings
 CKEDITOR_UPLOAD_PATH = "uploads/"
 
 CKEDITOR_CONFIGS = {
@@ -110,10 +108,8 @@ CKEDITOR_CONFIGS = {
         'toolbar': 'Full',
         'height': 300,
         'width': '100%',
-        'extraPlugins': ','.join([
-            'uploadimage',
-            'image2',
-        ]),
+        'extraPlugins': 'uploadimage,image2',
+        'removePlugins': 'exportpdf,clipboard-image-handling',  # remove plugins causing errors
         'toolbar_Full': [
             {'name': 'document', 'items': ['Source', '-', 'Save', 'NewPage', 'Preview', 'Print', '-', 'Templates']},
             {'name': 'clipboard', 'items': ['Cut', 'Copy', 'Paste', 'PasteText', 'PasteFromWord', '-', 'Undo', 'Redo']},

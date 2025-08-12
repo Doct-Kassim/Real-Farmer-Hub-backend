@@ -6,7 +6,6 @@ from .models import Tip, TipPhoto, PestsandDiseases, PestsandDiseasesPhoto
 
 User = get_user_model()
 
-# --- Login Serializer with extra user info in token ---
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
@@ -24,7 +23,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         })
         return data
 
-# --- User Serializer for profile view/update ---
 class UserSerializer(serializers.ModelSerializer):
     username = serializers.CharField(read_only=True)
     role = serializers.CharField(read_only=True)
@@ -73,7 +71,6 @@ class UserSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-# --- Registration Serializer ---
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
@@ -114,7 +111,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
         return user
 
-# --- TipPhoto Serializer (media URLs) ---
 class TipPhotoSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
 
@@ -128,10 +124,11 @@ class TipPhotoSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.image.url)
         return None
 
-# --- Tip Serializer including media (photos/videos) ---
 class TipSerializer(serializers.ModelSerializer):
     author_name = serializers.SerializerMethodField()
     media = serializers.SerializerMethodField()
+    photos = TipPhotoSerializer(many=True, read_only=True)   # Nested photos serializer
+
     date_posted = serializers.DateTimeField(source='date', format="%Y-%m-%d %H:%M")
     last_updated = serializers.DateTimeField(source='updated_at', format="%Y-%m-%d %H:%M")
 
@@ -140,7 +137,7 @@ class TipSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'description', 'category',
             'crop', 'livestock', 'equipment',
-            'author_name', 'media', 'date_posted', 'last_updated'
+            'author_name', 'photos', 'media', 'date_posted', 'last_updated'
         ]
 
     def get_author_name(self, obj):
@@ -150,7 +147,7 @@ class TipSerializer(serializers.ModelSerializer):
     def get_media(self, obj):
         request = self.context.get('request')
         if not obj.pk:
-            return None  # Avoid errors on unsaved instances
+            return None
 
         if obj.video:
             return {
@@ -165,7 +162,6 @@ class TipSerializer(serializers.ModelSerializer):
             }
         return None
 
-# --- PestsandDiseasesPhoto Serializer ---
 class PestsandDiseasesPhotoSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
 
@@ -179,10 +175,11 @@ class PestsandDiseasesPhotoSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.image.url)
         return None
 
-# --- PestsandDiseases Serializer including media ---
 class PestsandDiseasesSerializer(serializers.ModelSerializer):
     author_name = serializers.SerializerMethodField()
     media = serializers.SerializerMethodField()
+    photos = PestsandDiseasesPhotoSerializer(many=True, read_only=True)  # Nested photos
+
     date_posted = serializers.DateTimeField(source='date', format="%Y-%m-%d %H:%M")
     last_updated = serializers.DateTimeField(source='updated_at', format="%Y-%m-%d %H:%M")
 
@@ -191,7 +188,7 @@ class PestsandDiseasesSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'description', 'category',
             'crop', 'livestock',
-            'author_name', 'media', 'date_posted', 'last_updated'
+            'author_name', 'photos', 'media', 'date_posted', 'last_updated'
         ]
 
     def get_author_name(self, obj):

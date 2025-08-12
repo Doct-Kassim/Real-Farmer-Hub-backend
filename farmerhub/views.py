@@ -8,14 +8,12 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
+
 User = get_user_model()
 
-# Create your views here.
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
-
-# userprofile viewset
 class UserProfileView(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -24,7 +22,6 @@ class UserProfileView(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         return User.objects.filter(id=user.id)
-    
 
 class UpdateProfileView(APIView):
     permission_classes = [IsAuthenticated]
@@ -39,14 +36,11 @@ class UpdateProfileView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# register viewset
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
 
-
-# tips viewset
 class TipListView(generics.ListAPIView):
     queryset = Tip.objects.all().order_by('-date')
     serializer_class = TipSerializer
@@ -60,10 +54,7 @@ class TipDetailView(generics.RetrieveAPIView):
 
     def get_serializer_context(self):
         return {'request': self.request}
-    
 
-
-# pests and diseases viewset
 class PestsandDiseasesListView(generics.ListAPIView):
     queryset = PestsandDiseases.objects.all().order_by('-date')
     serializer_class = PestsandDiseasesSerializer
@@ -77,5 +68,3 @@ class PestsandDiseasesDetailView(generics.RetrieveAPIView):
 
     def get_serializer_context(self):
         return {'request': self.request}
-    
-

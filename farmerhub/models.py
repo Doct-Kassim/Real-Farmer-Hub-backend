@@ -1,11 +1,11 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, UserManager
-from django.utils.translation import gettext_lazy as _      
+from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 from ckeditor_uploader.fields import RichTextUploadingField
 from django.contrib.auth import get_user_model
 
-# Choices classes
+
 class Gender(models.TextChoices):
     MALE = 'Male', _('Male')
     FEMALE = 'Female', _('Female')
@@ -19,25 +19,6 @@ class Tipscategory(models.TextChoices):
     CROP = 'Crop', _('Crop')
     LIVESTOCK = 'Livestock', _('Livestock')
     EQUIPMENT = 'Equipment', _('Equipment')
-    OTHER = 'Other', _('Other')
-
-class Crop(models.TextChoices):
-    CORN = 'Corn', _('Corn')
-    SOYBEAN = 'Soybean', _('Soybean')
-    MAIZE = 'Maize', _('Maize')
-    COTTON = 'Cotton', _('Cotton')
-    OTHER = 'Other', _('Other')
-
-class Livestock(models.TextChoices):
-    COW = 'Cow', _('Cow')
-    PIG = 'Pig', _('Pig')
-    SHEEP = 'Sheep', _('Sheep')
-    OTHER = 'Other', _('Other')
-
-class Equipment(models.TextChoices):
-    HOE = 'Hoe', _('Hoe')
-    DRILL = 'Drill', _('Drill')
-    CATERPILLAR = 'Caterpillar', _('Caterpillar')
     OTHER = 'Other', _('Other')
 
 
@@ -86,14 +67,15 @@ class User(AbstractUser):
 
 User = get_user_model()
 
+
 class Tip(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'is_staff': True})
     category = models.CharField(max_length=20, choices=Tipscategory.choices)
-    crop = models.CharField(max_length=20, choices=Crop.choices, null=True, blank=True)
-    livestock = models.CharField(max_length=20, choices=Livestock.choices, null=True, blank=True)
-    equipment = models.CharField(max_length=20, choices=Equipment.choices, null=True, blank=True)
+    crop = models.CharField(max_length=50, null=True, blank=True)        # No choices, admin types name freely
+    livestock = models.CharField(max_length=50, null=True, blank=True)   # No choices, admin types name freely
+    equipment = models.CharField(max_length=50, null=True, blank=True)   # No choices, admin types name freely
     title = models.CharField(max_length=100)
-    description = RichTextUploadingField()  # Changed here from TextField to RichTextUploadingField
+    description = RichTextUploadingField()
     date = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -135,7 +117,7 @@ class Tip(models.Model):
 
 class TipPhoto(models.Model):
     tip = models.ForeignKey(Tip, related_name='photos', on_delete=models.CASCADE)
-    image = models.ImageField(upload_to='tip_photos/')
+    image = models.ImageField(upload_to='tip_photos/', null=True, blank=True)
 
     def __str__(self):
         return f"Photo for {self.tip.title}"
@@ -144,10 +126,10 @@ class TipPhoto(models.Model):
 class PestsandDiseases(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'is_staff': True})
     category = models.CharField(max_length=20, choices=Tipscategory.choices)
-    crop = models.CharField(max_length=20, choices=Crop.choices, null=True, blank=True)
-    livestock = models.CharField(max_length=20, choices=Livestock.choices, null=True, blank=True)
+    crop = models.CharField(max_length=50, null=True, blank=True)
+    livestock = models.CharField(max_length=50, null=True, blank=True)
     title = models.CharField(max_length=100)
-    description = RichTextUploadingField()  # Changed here from TextField to RichTextUploadingField
+    description = RichTextUploadingField()
     date = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -178,8 +160,8 @@ class PestsandDiseases(models.Model):
             if not any(self.video.name.lower().endswith(ext) for ext in valid_extensions):
                 raise ValidationError({'video': 'Unsupported video format. Use MP4, MOV, or AVI.'})
 
-        if not self.video and not has_photos:
-            raise ValidationError("You must upload either a video or at least one photo.") 
+        # if not self.video and not has_photos:
+        #     raise ValidationError("You must upload either a video or at least one photo.") 
 
     def __str__(self):
         return self.title 
