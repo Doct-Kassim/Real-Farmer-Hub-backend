@@ -8,20 +8,29 @@ https://docs.djangoproject.com/en/5.2/howto/deployment/asgi/
 """
 
 import os
-from channels.auth import AuthMiddlewareStack
-from channels.routing import ProtocolTypeRouter, URLRouter
+import django
 from django.core.asgi import get_asgi_application
-import chat.routing  # routing ya chat app yako
+from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.auth import AuthMiddlewareStack
 
-# Weka Django settings module
+# Set the default Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
-# Hii application inashughulikia HTTP na WebSocket
+# Initialize Django ASGI application early to ensure the AppRegistry
+# is populated before importing code that may import ORM models.
+django_asgi_app = get_asgi_application()
+
+# Ensure Django is setup before importing apps
+django.setup()
+
+# Now safely import your WebSocket routes
+from farmerhub.routing import websocket_urlpatterns
+
 application = ProtocolTypeRouter({
-    "http": get_asgi_application(),  # HTTP requests za kawaida
+    "http": django_asgi_app,  # Traditional HTTP requests
     "websocket": AuthMiddlewareStack(  # WebSocket connections
         URLRouter(
-            chat.routing.websocket_urlpatterns  # routing ya chat rooms
+            websocket_urlpatterns  # Your WebSocket routes
         )
     ),
 })

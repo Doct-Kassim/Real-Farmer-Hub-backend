@@ -2,10 +2,22 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
-from .models import Tip, TipPhoto, PestsandDiseases, PestsandDiseasesPhoto
+from django.utils import timezone
+from .models import (
+    Tip, 
+    TipPhoto, 
+    PestsandDiseases, 
+    PestsandDiseasesPhoto,
+    ForumRoom,
+    ForumMessage,
+    TrainingVideo
+)
 
 User = get_user_model()
 
+# ------------------------
+# User / Auth Serializers
+# ------------------------
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
@@ -22,6 +34,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'phone': user.phone,
         })
         return data
+
 
 class UserSerializer(serializers.ModelSerializer):
     username = serializers.CharField(read_only=True)
@@ -71,6 +84,7 @@ class UserSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
@@ -111,6 +125,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
         return user
 
+
+# ------------------------
+# Tip / Pests Serializers
+# ------------------------
 class TipPhotoSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
 
@@ -124,10 +142,11 @@ class TipPhotoSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.image.url)
         return None
 
+
 class TipSerializer(serializers.ModelSerializer):
     author_name = serializers.SerializerMethodField()
     media = serializers.SerializerMethodField()
-    photos = TipPhotoSerializer(many=True, read_only=True)   # Nested photos serializer
+    photos = TipPhotoSerializer(many=True, read_only=True)
 
     date_posted = serializers.DateTimeField(source='date', format="%Y-%m-%d %H:%M")
     last_updated = serializers.DateTimeField(source='updated_at', format="%Y-%m-%d %H:%M")
@@ -148,19 +167,13 @@ class TipSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if not obj.pk:
             return None
-
         if obj.video:
-            return {
-                'type': 'video',
-                'url': request.build_absolute_uri(obj.video.url)
-            }
+            return {'type': 'video', 'url': request.build_absolute_uri(obj.video.url)}
         photos = obj.photos.all() if hasattr(obj, 'photos') else []
         if photos:
-            return {
-                'type': 'photos',
-                'urls': [request.build_absolute_uri(photo.image.url) for photo in photos]
-            }
+            return {'type': 'photos', 'urls': [request.build_absolute_uri(photo.image.url) for photo in photos]}
         return None
+
 
 class PestsandDiseasesPhotoSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
@@ -175,10 +188,11 @@ class PestsandDiseasesPhotoSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.image.url)
         return None
 
+
 class PestsandDiseasesSerializer(serializers.ModelSerializer):
     author_name = serializers.SerializerMethodField()
     media = serializers.SerializerMethodField()
-    photos = PestsandDiseasesPhotoSerializer(many=True, read_only=True)  # Nested photos
+    photos = PestsandDiseasesPhotoSerializer(many=True, read_only=True)
 
     date_posted = serializers.DateTimeField(source='date', format="%Y-%m-%d %H:%M")
     last_updated = serializers.DateTimeField(source='updated_at', format="%Y-%m-%d %H:%M")
@@ -199,16 +213,46 @@ class PestsandDiseasesSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if not obj.pk:
             return None
-
         if obj.video:
-            return {
-                'type': 'video',
-                'url': request.build_absolute_uri(obj.video.url)
-            }
+            return {'type': 'video', 'url': request.build_absolute_uri(obj.video.url)}
         photos = obj.photos.all() if hasattr(obj, 'photos') else []
         if photos:
-            return {
-                'type': 'photos',
-                'urls': [request.build_absolute_uri(photo.image.url) for photo in photos]
-            }
+            return {'type': 'photos', 'urls': [request.build_absolute_uri(photo.image.url) for photo in photos]}
+        return None
+
+
+# ------------------------
+# Forum Serializers
+# ------------------------
+class ForumRoomSerializer(serializers.ModelSerializer):
+    participants = UserSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = ForumRoom
+        fields = '__all__'
+
+
+class ForumMessageSerializer(serializers.ModelSerializer):
+    sender = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = ForumMessage
+        fields = '__all__'
+        read_only_fields = ['timestamp']
+
+
+# ------------------------
+# NEW TrainingVideo Serializer
+# ------------------------
+class TrainingVideoSerializer(serializers.ModelSerializer):
+    video_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TrainingVideo
+        fields = ['id', 'title', 'description', 'video_url', 'created_at']
+
+    def get_video_url(self, obj):
+        request = self.context.get('request')
+        if obj.video_file:
+            return request.build_absolute_uri(obj.video_file.url)
         return None

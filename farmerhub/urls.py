@@ -1,34 +1,61 @@
 from django.urls import path, include
-from .views import *
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
+from .views import (
+    CustomTokenObtainPairView,
+    RegisterView,
+    UpdateProfileView,
+    TipListView,
+    TipDetailView,
+    PestsandDiseasesListView,
+    PestsandDiseasesDetailView,
+    UserProfileView,
+    # Forum views
+    ForumRoomViewSet,
+    ForumMessageListView,
+    ForumMessageDetailView,
+    # TrainingVideo views
+    TrainingVideoListView,
+    TrainingVideoDetailView
+)
 
+# ------------------------
+# Router for forum rooms
+# ------------------------
 router = DefaultRouter()
-# router.register(r'profile', UserProfileView, basename='profile')
+router.register(r'forum/rooms', ForumRoomViewSet, basename='forumroom')
 
+# ------------------------
+# URL Patterns
+# ------------------------
 urlpatterns = [
-    path('', include(router.urls)),
-    
-    # login url
+    # Authentication URLs
     path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    
-    # register url
     path('register-user/', RegisterView.as_view(), name='register'),
-    
-    # refresh token url
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
-    # update profile url
+    # Profile URLs
     path('update-profile/', UpdateProfileView.as_view(), name='update_profile'),
 
-    # tips urls
+    # Tips URLs
     path('tips/', TipListView.as_view(), name='tip-list'),
     path('tips/<int:pk>/', TipDetailView.as_view(), name='tip-detail'),
 
-    # pests and diseases urls
+    # Pests and Diseases URLs
     path('pests-and-diseases/', PestsandDiseasesListView.as_view(), name='pestsanddiseases-list'),
     path('pests-and-diseases/<int:pk>/', PestsandDiseasesDetailView.as_view(), name='pestsanddiseases-detail'),
 
-    # CKEditor uploader urls - hii ni muhimu kwa CKEditor file uploads
+    # CKEditor URL
     path('ckeditor/', include('ckeditor_uploader.urls')),
+
+    # Forum URLs
+    path('forum/rooms/<int:room_id>/messages/', ForumMessageListView.as_view(), name='room-messages'),
+    path('forum/messages/<int:pk>/', ForumMessageDetailView.as_view(), name='message-detail'),
+
+    # Training Video URLs
+    path('training-videos/', TrainingVideoListView.as_view(), name='trainingvideo-list'),
+    path('training-videos/<int:pk>/', TrainingVideoDetailView.as_view(), name='trainingvideo-detail'),
+
+    # Include router URLs
+    path('', include(router.urls)),
 ]
