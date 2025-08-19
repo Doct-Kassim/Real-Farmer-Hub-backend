@@ -5,7 +5,8 @@ from django import forms
 from .models import (
     User, Tip, TipPhoto, 
     PestsandDiseases, PestsandDiseasesPhoto, 
-    ForumRoom, ForumMessage, TrainingVideo
+    ForumRoom, ForumMessage, TrainingVideo,
+    
 )
 
 # ------------------------
@@ -124,7 +125,13 @@ admin.site.register(ForumMessage)
 # ------------------------
 @admin.register(TrainingVideo)
 class TrainingVideoAdmin(admin.ModelAdmin):
-    list_display = ['title', 'created_at']   # display title na created_at
+    list_display = ['title', 'created_at']   
     search_fields = ['title']
-    ordering = ['-created_at']               # change from -uploaded_at to -created_at
-    list_filter = ['created_at']             # change from uploaded_at to created_at
+    ordering = ['-created_at']              
+    list_filter = ['created_at']            
+
+
+
+
+
+

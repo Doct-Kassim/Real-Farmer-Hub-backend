@@ -172,3 +172,10 @@ class TrainingVideoDetailView(generics.RetrieveUpdateDestroyAPIView):
         if self.request.user.role != 'Admin':
             raise PermissionError("Only admin can delete training videos.")
         instance.delete()
+
+
+
+
+
+
+

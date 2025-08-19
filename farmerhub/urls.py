@@ -16,18 +16,14 @@ from .views import (
     ForumMessageDetailView,
     # TrainingVideo views
     TrainingVideoListView,
-    TrainingVideoDetailView
+    TrainingVideoDetailView,
+    
 )
 
-# ------------------------
-# Router for forum rooms
-# ------------------------
 router = DefaultRouter()
 router.register(r'forum/rooms', ForumRoomViewSet, basename='forumroom')
 
-# ------------------------
-# URL Patterns
-# ------------------------
+
 urlpatterns = [
     # Authentication URLs
     path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -56,6 +52,6 @@ urlpatterns = [
     path('training-videos/', TrainingVideoListView.as_view(), name='trainingvideo-list'),
     path('training-videos/<int:pk>/', TrainingVideoDetailView.as_view(), name='trainingvideo-detail'),
 
-    # Include router URLs
+   
     path('', include(router.urls)),
 ]

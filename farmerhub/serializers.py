@@ -256,3 +256,5 @@ class TrainingVideoSerializer(serializers.ModelSerializer):
         if obj.video_file:
             return request.build_absolute_uri(obj.video_file.url)
         return None
+
+

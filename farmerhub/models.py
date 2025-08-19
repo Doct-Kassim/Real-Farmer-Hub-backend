@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser, UserManager
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 from ckeditor_uploader.fields import RichTextUploadingField
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 # -------------------------
@@ -188,17 +189,10 @@ class ForumMessage(models.Model):
 # NEW Training & Tutorials Model
 # -------------------------
 class TrainingVideo(models.Model):
-    author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        limit_choices_to={'is_staff': True},  # Only staff/admin can be chosen as author
-        related_name="training_videos"
-    )
     title = models.CharField(max_length=200)
     description = RichTextUploadingField()
     video_file = models.FileField(upload_to='training_videos/')
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = "Training Video"
@@ -213,3 +207,6 @@ class TrainingVideo(models.Model):
             valid_extensions = ['.mp4', '.mov', '.avi']
             if not any(self.video_file.name.lower().endswith(ext) for ext in valid_extensions):
                 raise ValidationError({'video_file': 'Unsupported video format. Use MP4, MOV, or AVI.'})
+
+
+
